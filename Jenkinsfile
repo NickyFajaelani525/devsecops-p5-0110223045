@@ -5,6 +5,18 @@ pipeline {
         stage('Secret Scan') {
             steps {
                 sh '''
+		    echo "=== WORKSPACE ==="
+                    pwd
+  
+                    echo "=== FILES ==="
+                    ls -la "$WORKSPACE"
+
+		    echo "=== GIT DIRECTORY ==="
+                    ls -la "$WORKSPACE/.git"
+
+                    echo "=== GIT STATUS ==="
+                    git -C "$WORKSPACE" status
+
                     docker run --rm \
                         -v "$WORKSPACE:/repo" \
                         zricethezav/gitleaks:latest \

@@ -8,9 +8,7 @@ pipeline {
                     docker run --rm \
                         -v "$WORKSPACE:/repo" \
                         zricethezav/gitleaks:latest \
-                        detect \
-                        --source /repo \
-                        --no-git \
+                        dir /repo \
                         --report-path /repo/gitleaks-report.json \
                         --report-format json \
                         --redact \

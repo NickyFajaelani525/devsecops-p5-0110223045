@@ -2,17 +2,11 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Secret Scan') {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$(pwd):/repo" \
+                        -v "$WORKSPACE:/repo" \
                         zricethezav/gitleaks:latest \
                         detect \
                         --source /repo \
@@ -27,11 +21,16 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'gitleaks-report.json', allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: 'gitleaks-report.json',
+                allowEmptyArchive: true
+            )
         }
+
         failure {
             echo 'Secret scan menemukan potensi credential yang ter-expose. Cek gitleaks-report.json.'
         }
+
         success {
             echo 'Secret scan clean. Aman lanjut ke stage berikutnya.'
         }

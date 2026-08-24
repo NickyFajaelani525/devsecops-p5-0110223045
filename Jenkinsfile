@@ -5,26 +5,18 @@ pipeline {
         stage('Secret Scan') {
             steps {
                 sh '''
-                    echo "=== CHECK WORKSPACE MOUNT ==="
+                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                    GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+
+                    echo "=== SECRET SCAN ==="
+                    echo "Jenkins workspace: $WORKSPACE"
+                    echo "Gitleaks path: $GITLEAKS_PATH"
 
                     docker run --rm \
-                        -v "$WORKSPACE:/repo" \
-                        alpine:latest \
-                        sh -c '
-                            echo "--- FILES ---"
-                            ls -lah /repo
-
-                            echo "--- FILE SIZES ---"
-                            wc -c /repo/Jenkinsfile /repo/README.md
-                        '
-
-                    echo "=== GITLEAKS SCAN ==="
-
-                    docker run --rm \
-                        -v "$WORKSPACE:/repo" \
+                        -v jenkins_home:/jenkins_home \
                         zricethezav/gitleaks:latest \
-                        dir /repo \
-                        --report-path /repo/gitleaks-report.json \
+                        dir "$GITLEAKS_PATH" \
+                        --report-path "$GITLEAKS_PATH/gitleaks-report.json" \
                         --report-format json \
                         --redact \
                         --exit-code 1

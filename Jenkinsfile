@@ -5,6 +5,21 @@ pipeline {
         stage('Secret Scan') {
             steps {
                 sh '''
+                    echo "=== CHECK WORKSPACE MOUNT ==="
+
+                    docker run --rm \
+                        -v "$WORKSPACE:/repo" \
+                        alpine:latest \
+                        sh -c '
+                            echo "--- FILES ---"
+                            ls -lah /repo
+
+                            echo "--- FILE SIZES ---"
+                            wc -c /repo/Jenkinsfile /repo/README.md
+                        '
+
+                    echo "=== GITLEAKS SCAN ==="
+
                     docker run --rm \
                         -v "$WORKSPACE:/repo" \
                         zricethezav/gitleaks:latest \

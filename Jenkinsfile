@@ -4,44 +4,48 @@ pipeline {
     stages {
         stage('Secret Scan - Filesystem') {
             steps {
-                sh '''
-                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
-                    GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
 
-                    echo "=== FILESYSTEM SECRET SCAN ==="
-                    echo "Workspace: $WORKSPACE"
-                    echo "Scan path: $GITLEAKS_PATH"
+                        echo "=== FILESYSTEM SECRET SCAN ==="
+                        echo "Workspace: $WORKSPACE"
+                        echo "Scan path: $GITLEAKS_PATH"
 
-                    docker run --rm \
-                        -v jenkins_home:/jenkins_home \
-                        zricethezav/gitleaks:latest \
-                        dir "$GITLEAKS_PATH" \
-                        --report-path "$GITLEAKS_PATH/gitleaks-filesystem.json" \
-                        --report-format json \
-                        --redact \
-                        --exit-code 1
-                '''
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            zricethezav/gitleaks:latest \
+                            dir "$GITLEAKS_PATH" \
+                            --report-path "$GITLEAKS_PATH/gitleaks-filesystem.json" \
+                            --report-format json \
+                            --redact \
+                            --exit-code 1
+                    '''
+                }
             }
         }
 
         stage('Secret Scan - Git History') {
             steps {
-                sh '''
-                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
-                    GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
 
-                    echo "=== GIT HISTORY SECRET SCAN ==="
-                    echo "Git repository: $GITLEAKS_PATH/.git"
+                        echo "=== GIT HISTORY SECRET SCAN ==="
+                        echo "Git repository: $GITLEAKS_PATH/.git"
 
-                    docker run --rm \
-                        -v jenkins_home:/jenkins_home \
-                        zricethezav/gitleaks:latest \
-                        git "$GITLEAKS_PATH" \
-                        --report-path "$GITLEAKS_PATH/gitleaks-history.json" \
-                        --report-format json \
-                        --redact \
-                        --exit-code 1
-                '''
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            zricethezav/gitleaks:latest \
+                            git "$GITLEAKS_PATH" \
+                            --report-path "$GITLEAKS_PATH/gitleaks-history.json" \
+                            --report-format json \
+                            --redact \
+                            --exit-code 1
+                    '''
+                }
             }
         }
     }

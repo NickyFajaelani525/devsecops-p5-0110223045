@@ -1,0 +1,75 @@
+body {
+  font-family: -apple-system, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  margin: 0;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header p {
+  color: #94a3b8;
+}
+
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto 1.5rem auto;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 0.6rem;
+  margin: 0.4rem 0;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  box-sizing: border-box;
+}
+
+button {
+  background: #2dd4bf;
+  color: #0f172a;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+button:hover {
+  background: #5eead4;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #334155;
+}
+
+.hidden {
+  display: none;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+a {
+  color: #2dd4bf;
+}

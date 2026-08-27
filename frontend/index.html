@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>MiniSOC — Incident Ticketing</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>MiniSOC</h1>
+    <p>Incident Ticketing Dashboard</p>
+  </header>
+
+  <section id="auth-section">
+    <div class="card">
+      <h2>Login</h2>
+      <input id="login-username" placeholder="Username" />
+      <input id="login-password" type="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p class="hint">Belum punya akun? <a href="#" onclick="register()">Register di sini</a></p>
+      <p id="auth-message"></p>
+    </div>
+  </section>
+
+  <section id="app-section" class="hidden">
+    <div class="card">
+      <button id="logout-btn" onclick="logout()" style="float:right;">Logout</button>
+      <h2>Buat Ticket Baru</h2>
+      <input id="ticket-title" placeholder="Judul insiden" />
+      <textarea id="ticket-description" placeholder="Deskripsi"></textarea>
+      <select id="ticket-severity">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+      <button onclick="createTicket()">Buat Ticket</button>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Ticket</h2>
+      <button onclick="loadTickets()">Refresh</button>
+      <table id="tickets-table">
+        <thead>
+          <tr><th>ID</th><th>Judul</th><th>Severity</th><th>Status</th><th>Sumber</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="tickets-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

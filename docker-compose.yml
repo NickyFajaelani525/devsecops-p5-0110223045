@@ -1,0 +1,35 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://minisoc:minisocpass@db:5432/minisoc
+      JWT_SECRET_KEY: dev-only-change-me-in-production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - minisoc-network
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: minisoc
+      POSTGRES_PASSWORD: minisocpass
+      POSTGRES_DB: minisoc
+    volumes:
+      - minisoc-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minisoc -d minisoc"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - minisoc-network
+
+volumes:
+  minisoc-pgdata:
+
+networks:
+  minisoc-network:

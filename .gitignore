@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Database lokal (SQLite) — jangan commit data, apalagi setelah migrasi ke Postgres
+*.db
+*.sqlite3
+
+# Environment / secrets
+.env
+.env.*
+
+# Jenkins artifact hasil scan (opsional — biasanya ini justru mau di-archive via Jenkins,
+# bukan disimpan permanen di git; uncomment kalau mau exclude dari repo)
+# gitleaks-*.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'acrminisoc2026nick.azurecr.io'   // ganti sesuai login server ACR lu
+        ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
     }
 

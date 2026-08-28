@@ -201,4 +201,210 @@ gitleaks-filesystem.json     gitleaks-history.json
 
 Setup Azure identity & ACR : tambah stage Build Image + Push to ACR.
 
+```
+1. Azure Identity — Service Principal jenkins-ci
+   - Dibuat via App Registration di Azure Entra ID.
+   - Role: Contributor
+   - Scope: dibatasi ke 1 resource group (rg-devsecops-journey), bukan
+     seluruh subscription.
+   - Prinsip least-privilege: kalau credential ini bocor, blast radius
+     terbatas hanya ke resource group ini.
+   - 3 nilai yang dihasilkan: Application (client) ID, Directory (tenant) ID,
+     Client Secret.
+
+2. Region Constraint — Azure for Students
+   - Subscription Azure for Students dibatasi ke region tertentu via Azure
+     Policy (allowed locations), berbeda dari region bebas pada subscription
+     pay-as-you-go biasa.
+   - Region yang diizinkan untuk akun ini: indonesiacentral, eastasia,
+     malaysiawest, koreacentral, japaneast.
+   - Semua resource (resource group, ACR) dibuat di region: indonesiacentral
+     — selain memenuhi policy, juga region terdekat secara fisik.
+
+3. Azure Container Registry (ACR)
+   - Tier: Basic (cukup untuk kebutuhan project, tidak butuh replikasi
+     multi-region).
+   - Role Assignment Permissions Mode: RBAC Registry Permissions (bukan
+     RBAC + ABAC) — dipilih karena role legacy seperti AcrPush tidak
+     berlaku di mode ABAC-enabled, dan skala project ini tidak butuh
+     permission per-repository.
+   - Domain Name Label Scope: Tenant Reuse — DNS name registry mendapat
+     hash unik berbasis tenant, mencegah subdomain takeover jika nama
+     registry pernah dilepas di masa depan.
+
+4. Role Assignment ke jenkins-ci
+   - Contributor di level resource group SUDAH mencakup akses push/pull
+     ke ACR yang ada di dalam resource group yang sama.
+   - Assignment AcrPush terpisah di level ACR sempat ditambahkan tapi
+     ternyata redundant — dihapus karena Contributor di resource group
+     sudah cukup.
+   - Pelajaran: cek dulu scope existing sebelum menambah role assignment
+     baru, supaya tidak menambah permukaan izin tanpa manfaat nyata.
+
+5. Kredensial Azure di Jenkins
+   - Disimpan sebagai 3 Jenkins Secret text terpisah (bukan 1 credential
+     tipe Azure Service Principal, karena tidak pakai plugin tambahan):
+     azure-client-id
+     azure-client-secret
+     azure-tenant-id (belum dipakai di stage push, hanya client-id/secret
+     yang dibutuhkan untuk docker login ke ACR)
+   - ID credential Jenkins (azure-client-id, dst) adalah nama referensi
+     yang direferensikan di Jenkinsfile lewat `credentialsId:` — bukan
+     value UUID Azure asli. Value asli tersimpan di Jenkins Credentials
+     Store, tidak pernah ditulis langsung di Jenkinsfile.
+
+6. Masalah DooD (Docker-outside-of-Docker) — Path Translation untuk Build
+   - Jenkins container mount docker.sock dari HOST, sehingga command
+     "docker run -v <path>" (dipakai di stage Gitleaks) di-resolve oleh
+     daemon HOST, bukan filesystem container Jenkins.
+   - Solusi (dipakai juga di Iterasi 1): mount named volume jenkins_home
+     langsung ke container terkait, translasi path manual:
+     SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+     GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+
+7. Koreksi Penting — docker build TIDAK Butuh Path Translation
+   - Berbeda dari docker run -v, docker build TIDAK butuh translasi path.
+   - CLI docker build berjalan LANGSUNG di dalam container Jenkins, dan
+     membaca build context dari sudut pandang filesystem-nya sendiri
+     ($WORKSPACE) sebelum dikirim ke daemon host — tidak ada container
+     perantara yang butuh volume mount di-translate.
+   - Memakai path hasil translasi (/jenkins_home/...) untuk build context
+     menyebabkan error: "path not found".
+   - Stage yang benar:
+     sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "${WORKSPACE}/backend"'
+
+8. Image Tagging Strategy
+   - IMAGE_TAG di-generate dari: git rev-parse --short HEAD
+   - Tiap commit menghasilkan tag unik dan immutable — tidak pernah pakai
+     tag "latest".
+   - Konsekuensi: tiap pipeline run dengan commit baru akan menghasilkan
+     image baru di ACR (menambah, bukan menimpa). Docker layer caching
+     membuat build kedua dst lebih cepat dari build pertama, selama
+     requirements.txt/base image tidak ikut berubah.
+
+9. Push Stage
+   - Login: docker login $ACR_NAME -u $AZ_CLIENT_ID --password-stdin
+     (client-id sebagai username, client-secret sebagai password,
+     --password-stdin dipakai agar secret tidak muncul di process list)
+   - Lanjut: docker tag, lalu docker push
+
+10. Hasil
+    - Pipeline run terkonfirmasi SUCCESS.
+    - Image berhasil di-build dan di-push ke login server:
+      acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io
+    - Suffix random pada nama tersebut adalah bukti nyata dari pilihan
+      Domain Name Label Scope: Tenant Reuse.
+
+11. Catatan Forward-Looking (Belum Diimplementasi)
+    - Image di ACR akan terus bertambah karena tiap commit baru
+      menghasilkan tag baru yang immutable.
+    - Retention policy adalah pertimbangan untuk direvisit sekitar
+      Minggu 8 (policy as code) atau Minggu 10 (capstone) — belum
+      diperlukan di skala project saat ini.
+
+STRUKTUR PIPELINE SAAT INI (ITERASI 1 + 2):
+
+Host (Fedora)
+│
+├── Docker Engine
+│
+├── Docker Socket
+│      └── /var/run/docker.sock
+│
+└── Jenkins Container
+       │
+       ├── Image: jenkins-dockercli:lts
+       ├── User: jenkins (non-root)
+       ├── docker group
+       ├── Docker CLI
+       ├── Docker Socket
+       │
+       ├── Jenkins Credentials Store
+       │      ├── github-minisoc        (PAT, Username with password)
+       │      ├── azure-client-id       (Secret text)
+       │      ├── azure-client-secret   (Secret text)
+       │      └── azure-tenant-id       (Secret text)
+       │
+       └── jenkins_home
+              │
+              └── workspace/minisoc-pipeline
+                     │
+                     ├── .git
+                     │    └── Git commit history
+                     │
+                     ├── Jenkinsfile
+                     ├── README.md
+                     │
+                     ├── backend/
+                     │    ├── Dockerfile        (multi-stage: builder → runtime)
+                     │    ├── main.py, auth.py, dst
+                     │    └── requirements.txt
+                     │
+                     └── gitleaks/
+                          └── secret.txt        (dummy, sengaja dipertahankan)
+                     │
+                     ↓
+              ┌──────────────┐
+              │   Checkout   │
+              └──────┬───────┘
+                     │
+                     ↓
+              Gitleaks Container
+              (docker run -v jenkins_home)
+                     │
+          ┌──────────┴──────────┐
+          ↓                     ↓
+   ┌──────────────┐     ┌──────────────┐
+   │ Secret Scan  │     │ Secret Scan  │
+   │ - Filesystem │     │ - Git History│
+   │ (gitleaks dir)│    │ (gitleaks git)│
+   └──────┬───────┘     └──────┬───────┘
+          ↓                     ↓
+  gitleaks-filesystem.json  gitleaks-history.json
+          │                     │
+          └──────────┬──────────┘
+                      ↓
+              Secret ditemukan?
+                /          \
+              YES           NO
+               │             │
+               ↓             │
+         BUILD FAILURE       │
+                              ↓
+                       ┌──────────────┐
+                       │ Build Image  │
+                       │ (docker build│
+                       │  di HOST via │
+                       │  docker.sock)│
+                       └──────┬───────┘
+                              │
+                              ↓
+                       Image tagged:
+                  minisoc-backend:<commit-hash>
+                              │
+                              ↓
+                       ┌──────────────┐
+                       │  Push to ACR │
+                       └──────┬───────┘
+                              │
+              ═══════════════════════════════
+              Keluar dari Host, masuk ke Azure
+              ═══════════════════════════════
+                              │
+                              ↓
+                Azure Container Registry (ACR)
+             acrminisoc2026nick******************.io
+                              │
+                              ├── Region: indonesiacentral
+                              ├── SKU: Basic
+                              ├── Domain Name Label Scope: Tenant Reuse
+                              ├── Role Assignment Mode: RBAC Registry Permissions
+                              │
+                              └── Repository: minisoc-backend
+                                     └── Tag: <commit-hash> (immutable)
+                              │
+                              ↓
+                       BUILD SUCCESS
+
+```
 

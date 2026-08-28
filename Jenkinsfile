@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
+        ACR_NAME = 'acrminisoc2026nick.azurecr.io'   // ganti sesuai login server ACR lu
         IMAGE_NAME = 'minisoc-backend'
     }
 
@@ -50,11 +50,7 @@ pipeline {
                 script {
                     env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                 }
-                sh '''
-                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
-                    BUILD_CONTEXT="/jenkins_home${SCAN_PATH}/backend"
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "$BUILD_CONTEXT"
-                '''
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "${WORKSPACE}/backend"'
             }
         }
 

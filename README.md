@@ -162,6 +162,11 @@ Stage: checkout + secret scan gitleaks (filesystem & git history)
     - Secret kemudian dihapus pada commit berikutnya.
     - Git history tetap mendeteksi secret tersebut.
     - Hal ini membuktikan fungsi Git history scanning.
+    
+    Cleaning History:
+    - Git history rewrite
+    - Secret replacement (text-replacement)
+    - Tools : git-filter-repo
 
 STRUKTUR PIPELINE SAAT INI:
 

@@ -1,11 +1,9 @@
 pipeline {
     agent any
-
     environment {
         ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
     }
-
     stages {
         stage('Secret Scan - Filesystem') {
             steps {
@@ -25,7 +23,6 @@ pipeline {
                 }
             }
         }
-
         stage('Secret Scan - Git History') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -44,7 +41,24 @@ pipeline {
                 }
             }
         }
-
+        stage('SCA - Trivy Filesystem') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            aquasec/trivy:latest \
+                            fs "$TRIVY_PATH/backend" \
+                            --format json \
+                            --output "$TRIVY_PATH/trivy-fs-report.json" \
+                            --severity MEDIUM,HIGH,CRITICAL \
+                            --exit-code 1
+                    '''
+                }
+            }
+        }
         stage('Build Image') {
             steps {
                 script {
@@ -53,7 +67,25 @@ pipeline {
                 sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "${WORKSPACE}/backend"'
             }
         }
-
+        stage('Container Scan - Trivy Image') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v jenkins_home:/jenkins_home \
+                            aquasec/trivy:latest \
+                            image "${IMAGE_NAME}:${IMAGE_TAG}" \
+                            --format json \
+                            --output "$TRIVY_PATH/trivy-image-report.json" \
+                            --severity MEDIUM,HIGH,CRITICAL \
+                            --exit-code 1
+                    '''
+                }
+            }
+        }
         stage('Push to ACR') {
             steps {
                 withCredentials([
@@ -69,16 +101,15 @@ pipeline {
             }
         }
     }
-
     post {
         always {
-            archiveArtifacts artifacts: 'gitleaks-*.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'gitleaks-*.json, trivy-*-report.json', allowEmptyArchive: true
         }
         failure {
-            echo 'Ada stage yang gagal — cek Console Output untuk detail (secret scan atau push ke ACR).'
+            echo 'Ada stage yang gagal — cek Console Output untuk detail (secret scan, trivy scan, atau push ke ACR).'
         }
         success {
-            echo 'Pipeline sukses: secret scan clean, image ter-build dan ter-push ke ACR.'
+            echo 'Pipeline sukses: semua scan clean, image ter-build dan ter-push ke ACR.'
         }
     }
 }

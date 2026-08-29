@@ -1,16 +1,37 @@
+```groovy
 pipeline {
     agent any
+
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
     }
+
     stages {
+
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Secret Scan - Filesystem') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+
                         docker run --rm \
                             -v jenkins_home:/jenkins_home \
                             zricethezav/gitleaks:latest \
@@ -23,12 +44,14 @@ pipeline {
                 }
             }
         }
+
         stage('Secret Scan - Git History') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         GITLEAKS_PATH="/jenkins_home${SCAN_PATH}"
+
                         docker run --rm \
                             -v jenkins_home:/jenkins_home \
                             zricethezav/gitleaks:latest \
@@ -41,12 +64,14 @@ pipeline {
                 }
             }
         }
+
         stage('SCA - Trivy Filesystem') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+
                         docker run --rm \
                             -v jenkins_home:/jenkins_home \
                             aquasec/trivy:latest \
@@ -59,20 +84,27 @@ pipeline {
                 }
             }
         }
+
         stage('Build Image') {
             steps {
                 script {
-                    env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    env.IMAGE_TAG = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
                 }
+
                 sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "${WORKSPACE}/backend"'
             }
         }
+
         stage('Container Scan - Trivy Image') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
                             -v jenkins_home:/jenkins_home \
@@ -86,33 +118,45 @@ pipeline {
                 }
             }
         }
+
         stage('Push to ACR') {
             when {
                 expression { currentBuild.currentResult != 'FAILURE' }
             }
+
             steps {
                 withCredentials([
                     string(credentialsId: 'azure-client-id', variable: 'AZ_CLIENT_ID'),
                     string(credentialsId: 'azure-client-secret', variable: 'AZ_CLIENT_SECRET')
                 ]) {
                     sh '''
-                        echo "$AZ_CLIENT_SECRET" | docker login "$ACR_NAME" -u "$AZ_CLIENT_ID" --password-stdin
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
+                        echo "$AZ_CLIENT_SECRET" | docker login "$ACR_NAME" \
+                            -u "$AZ_CLIENT_ID" \
+                            --password-stdin
+
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} \
+                            ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
+
                         docker push ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
         }
     }
+
     post {
         always {
-            archiveArtifacts artifacts: 'gitleaks-*.json, trivy-*-report.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'gitleaks-*.json, trivy-*-report.json',
+                allowEmptyArchive: true
         }
+
         failure {
             echo 'Ada stage yang gagal — cek Console Output untuk detail (secret scan, trivy scan, atau push ke ACR).'
         }
+
         success {
             echo 'Pipeline sukses: semua scan clean, image ter-build dan ter-push ke ACR.'
         }
     }
 }
+```

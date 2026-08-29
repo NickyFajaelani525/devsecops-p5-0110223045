@@ -87,6 +87,9 @@ pipeline {
             }
         }
         stage('Push to ACR') {
+            when {
+                expression { currentBuild.currentResult != 'FAILURE' }
+            }
             steps {
                 withCredentials([
                     string(credentialsId: 'azure-client-id', variable: 'AZ_CLIENT_ID'),

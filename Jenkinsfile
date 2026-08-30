@@ -70,9 +70,7 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
-                        TRIVY_CACHE="/var/jenkins_home/trivy-cache"
-
-                        mkdir -p "$TRIVY_CACHE"
+                        TRIVY_CACHE="/jenkins_home/trivy-cache"
 
                         docker run --rm \
                             -v jenkins_home:/jenkins_home \
@@ -108,8 +106,6 @@ pipeline {
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
                         TRIVY_CACHE="/jenkins_home/trivy-cache"
-
-                        mkdir -p "$TRIVY_CACHE"
 
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \

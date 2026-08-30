@@ -70,11 +70,15 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+                        TRIVY_CACHE="/jenkins_home/trivy-cache"
+
+                        mkdir -p "$TRIVY_CACHE"
 
                         docker run --rm \
                             -v jenkins_home:/jenkins_home \
                             aquasec/trivy:latest \
                             fs "$TRIVY_PATH/backend" \
+                            --cache-dir "$TRIVY_CACHE" \
                             --format json \
                             --output "$TRIVY_PATH/trivy-fs-report.json" \
                             --severity MEDIUM,HIGH,CRITICAL \
@@ -103,12 +107,16 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+                        TRIVY_CACHE="/jenkins_home/trivy-cache"
+
+                        mkdir -p "$TRIVY_CACHE"
 
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
                             -v jenkins_home:/jenkins_home \
                             aquasec/trivy:latest \
                             image "${IMAGE_NAME}:${IMAGE_TAG}" \
+                            --cache-dir "$TRIVY_CACHE" \
                             --format json \
                             --output "$TRIVY_PATH/trivy-image-report.json" \
                             --severity MEDIUM,HIGH,CRITICAL \

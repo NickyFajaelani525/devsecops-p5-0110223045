@@ -70,7 +70,7 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TRIVY_PATH="/jenkins_home${SCAN_PATH}"
-                        TRIVY_CACHE="/jenkins_home/trivy-cache"
+                        TRIVY_CACHE="/var/jenkins_home/trivy-cache"
 
                         mkdir -p "$TRIVY_CACHE"
 

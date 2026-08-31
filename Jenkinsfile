@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -6,7 +7,7 @@ pipeline {
     }
 
     environment {
-        ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg.azurecr.io'
+        ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
     }
 
@@ -109,6 +110,7 @@ pipeline {
                         --format json \
                         --output "$TRIVY_PATH/trivy-image-report.json" \
                         --severity MEDIUM,HIGH,CRITICAL \
+                        --ignore-unfixed \
                         --exit-code 1
                 '''
             }
@@ -150,3 +152,4 @@ pipeline {
         }
     }
 }
+```

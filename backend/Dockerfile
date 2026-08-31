@@ -8,7 +8,12 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # --- Stage 2: runtime — image final, cuma bawa yang perlu jalanin app ---
 FROM python:3.12-slim
 
-# Bikin user non-root, jangan jalanin app pakai root (best practice yang udah lu terapin di project sebelumnya)
+# Update OS packages untuk mendapatkan security patches Debian
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bikin user non-root
 RUN useradd --create-home --shell /bin/bash appuser
 
 WORKDIR /app

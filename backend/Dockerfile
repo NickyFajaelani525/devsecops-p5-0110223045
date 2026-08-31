@@ -2,8 +2,13 @@
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Update pip terlebih dahulu, kemudian install dependency aplikasi
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --user -r requirements.txt
+
 
 # --- Stage 2: runtime — image final, cuma bawa yang perlu jalanin app ---
 FROM python:3.12-slim
@@ -13,14 +18,19 @@ RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Update pip pada runtime image
+RUN pip install --no-cache-dir --upgrade pip
+
 # Bikin user non-root
 RUN useradd --create-home --shell /bin/bash appuser
 
 WORKDIR /app
+
 COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
 RUN chown -R appuser:appuser /app
+
 USER appuser
 
 ENV PATH=/home/appuser/.local/bin:$PATH

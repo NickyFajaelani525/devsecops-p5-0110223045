@@ -7,19 +7,18 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir --user -r requirements.txt \
     && pip install --no-cache-dir --user --upgrade \
-        setuptools>=83.0.0 \
-        msgpack>=1.2.1
-
+        "setuptools>=83.0.0" \
+        "msgpack>=1.2.1"
 
 # --- Stage 2: runtime ---
 FROM python:3.12-slim
 
-# Update OS packages untuk mendapatkan security patches Debian
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Bikin user non-root
+RUN pip install --no-cache-dir --upgrade pip
+
 RUN useradd --create-home --shell /bin/bash appuser
 
 WORKDIR /app

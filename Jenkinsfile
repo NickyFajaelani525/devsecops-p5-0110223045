@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -134,6 +135,26 @@ pipeline {
                 }
             }
         }
+
+        stage('IaC Scan - Trivy Config') {
+            steps {
+                sh '''
+                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                    TRIVY_PATH="/jenkins_home${SCAN_PATH}"
+                    TRIVY_CACHE="/jenkins_home/trivy-cache"
+
+                    docker run --rm \
+                        -v jenkins_home:/jenkins_home \
+                        aquasec/trivy:latest \
+                        config "$TRIVY_PATH/terraform" \
+                        --cache-dir "$TRIVY_CACHE" \
+                        --format json \
+                        --output "$TRIVY_PATH/trivy-config-report.json" \
+                        --severity MEDIUM,HIGH,CRITICAL \
+                        --exit-code 1
+                '''
+            }
+        }
     }
 
     post {
@@ -147,8 +168,8 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline sukses: semua scan clean, image ter-build dan ter-push ke ACR.'
+            echo 'Pipeline sukses: semua scan clean, image ter-build, ter-push ke ACR dan IaC clean.'
         }
     }
 }
-
+```

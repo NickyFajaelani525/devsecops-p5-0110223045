@@ -187,7 +187,7 @@ pipeline {
                     string(credentialsId: 'azure-client-id', variable: 'ARM_CLIENT_ID'),
                     string(credentialsId: 'azure-client-secret', variable: 'ARM_CLIENT_SECRET'),
                     string(credentialsId: 'azure-tenant-id', variable: 'ARM_TENANT_ID'),
-                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID')
+                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID'),
                     string(credentialsId: 'azure-ssh-public-key', variable: 'TF_VAR_ssh_public_key')
                 ]) {
                     sh '''
@@ -238,7 +238,7 @@ pipeline {
                     string(credentialsId: 'azure-client-id', variable: 'ARM_CLIENT_ID'),
                     string(credentialsId: 'azure-client-secret', variable: 'ARM_CLIENT_SECRET'),
                     string(credentialsId: 'azure-tenant-id', variable: 'ARM_TENANT_ID'),
-                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID')
+                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID'),
                     string(credentialsId: 'azure-ssh-public-key', variable: 'TF_VAR_ssh_public_key')
                 ]) {
                     sh '''

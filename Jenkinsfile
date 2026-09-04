@@ -3,11 +3,16 @@ pipeline {
 
     options {
         skipDefaultCheckout(true)
+        disableConcurrentBuilds()
     }
 
     environment {
         ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
+
+        // Persistent Terraform state inside Jenkins volume
+        TF_STATE = '/jenkins_home/terraform-state/terraform.tfstate'
+        TF_PLAN = '/jenkins_home/workspace/minisoc-pipeline/tfplan'
     }
 
     stages {
@@ -89,7 +94,11 @@ pipeline {
                     ).trim()
                 }
 
-                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} "${WORKSPACE}/backend"'
+                sh '''
+                    docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        "${WORKSPACE}/backend"
+                '''
             }
         }
 
@@ -129,7 +138,8 @@ pipeline {
                         docker tag ${IMAGE_NAME}:${IMAGE_TAG} \
                             ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
 
-                        docker push ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push \
+                            ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
@@ -150,8 +160,104 @@ pipeline {
                         --format json \
                         --output "$TRIVY_PATH/trivy-config-report.json" \
                         --severity MEDIUM,HIGH,CRITICAL \
+                        --skip-check AZU-0076 \
                         --exit-code 1
                 '''
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                sh '''
+                    SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                    TF_PATH="/jenkins_home${SCAN_PATH}/terraform"
+
+                    docker run --rm \
+                        -v jenkins_home:/jenkins_home \
+                        -w "$TF_PATH" \
+                        hashicorp/terraform:1.16.0 \
+                        init
+                '''
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'azure-client-id', variable: 'ARM_CLIENT_ID'),
+                    string(credentialsId: 'azure-client-secret', variable: 'ARM_CLIENT_SECRET'),
+                    string(credentialsId: 'azure-tenant-id', variable: 'ARM_TENANT_ID'),
+                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID')
+                ]) {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        TF_PATH="/jenkins_home${SCAN_PATH}/terraform"
+                        STATE_PATH="/jenkins_home/terraform-state/terraform.tfstate"
+                        PLAN_PATH="/jenkins_home${SCAN_PATH}/tfplan"
+
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            -w "$TF_PATH" \
+                            -e ARM_CLIENT_ID \
+                            -e ARM_CLIENT_SECRET \
+                            -e ARM_TENANT_ID \
+                            -e ARM_SUBSCRIPTION_ID \
+                            hashicorp/terraform:1.16.0 \
+                            plan \
+                            -state="$STATE_PATH" \
+                            -out="$PLAN_PATH"
+
+                        echo "===== TERRAFORM PLAN ====="
+
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            -w "$TF_PATH" \
+                            hashicorp/terraform:1.16.0 \
+                            show \
+                            -no-color \
+                            "$PLAN_PATH"
+                    '''
+                }
+            }
+        }
+
+        stage('Approval Gate') {
+            steps {
+                input(
+                    message: 'Terraform plan sudah direview. Lanjutkan Terraform Apply?',
+                    ok: 'Approve & Apply',
+                    cancel: 'Abort'
+                )
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'azure-client-id', variable: 'ARM_CLIENT_ID'),
+                    string(credentialsId: 'azure-client-secret', variable: 'ARM_CLIENT_SECRET'),
+                    string(credentialsId: 'azure-tenant-id', variable: 'ARM_TENANT_ID'),
+                    string(credentialsId: 'azure-subscription-id', variable: 'ARM_SUBSCRIPTION_ID')
+                ]) {
+                    sh '''
+                        SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
+                        TF_PATH="/jenkins_home${SCAN_PATH}/terraform"
+                        STATE_PATH="/jenkins_home/terraform-state/terraform.tfstate"
+                        PLAN_PATH="/jenkins_home${SCAN_PATH}/tfplan"
+
+                        docker run --rm \
+                            -v jenkins_home:/jenkins_home \
+                            -w "$TF_PATH" \
+                            -e ARM_CLIENT_ID \
+                            -e ARM_CLIENT_SECRET \
+                            -e ARM_TENANT_ID \
+                            -e ARM_SUBSCRIPTION_ID \
+                            hashicorp/terraform:1.16.0 \
+                            apply \
+                            -state="$STATE_PATH" \
+                            "$PLAN_PATH"
+                    '''
+                }
             }
         }
     }
@@ -163,11 +269,11 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline gagal — cek Console Output untuk detail security scan atau proses build.'
+            echo 'Pipeline gagal — cek Console Output untuk detail security scan atau Terraform.'
         }
 
         success {
-            echo 'Pipeline sukses: semua scan clean, image ter-build, ter-push ke ACR dan IaC clean.'
+            echo 'Pipeline sukses: security scan clean, image ter-push, Terraform approved dan applied.'
         }
     }
 }

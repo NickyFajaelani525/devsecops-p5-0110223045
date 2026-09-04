@@ -160,7 +160,7 @@ pipeline {
                         --format json \
                         --output "$TRIVY_PATH/trivy-config-report.json" \
                         --severity MEDIUM,HIGH,CRITICAL \
-                        --skip-check AZU-0076 \
+                        --ignorefile "$TRIVY_PATH/terraform/.trivyignore" \
                         --exit-code 1
                 '''
             }

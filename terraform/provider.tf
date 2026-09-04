@@ -7,6 +7,11 @@ terraform {
   }
 }
 
+backend "local" {
+    path = "/jenkins_home/terraform-state/terraform.tfstate"
+  }
+}
+
 provider "azurerm" {
   features {}
 

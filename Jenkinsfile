@@ -9,10 +9,6 @@ pipeline {
     environment {
         ACR_NAME = 'acrminisoc2026nick-e6cdh0h4dthegjg0.azurecr.io'
         IMAGE_NAME = 'minisoc-backend'
-
-        // Persistent Terraform state inside Jenkins volume
-        TF_STATE = '/jenkins_home/terraform-state/terraform.tfstate'
-        TF_PLAN = '/jenkins_home/workspace/minisoc-pipeline/tfplan'
     }
 
     stages {
@@ -176,7 +172,7 @@ pipeline {
                         -v jenkins_home:/jenkins_home \
                         -w "$TF_PATH" \
                         hashicorp/terraform:1.16.0 \
-                        init
+                        init -migrate-state -force-copy
                 '''
             }
         }
@@ -193,7 +189,6 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TF_PATH="/jenkins_home${SCAN_PATH}/terraform"
-                        STATE_PATH="/jenkins_home/terraform-state/terraform.tfstate"
                         PLAN_PATH="/jenkins_home${SCAN_PATH}/tfplan"
 
                         docker run --rm \
@@ -206,7 +201,6 @@ pipeline {
                             -e TF_VAR_ssh_public_key \
                             hashicorp/terraform:1.16.0 \
                             plan \
-                            -state="$STATE_PATH" \
                             -out="$PLAN_PATH"
 
                         echo "===== TERRAFORM PLAN ====="
@@ -245,7 +239,6 @@ pipeline {
                     sh '''
                         SCAN_PATH="${WORKSPACE#/var/jenkins_home}"
                         TF_PATH="/jenkins_home${SCAN_PATH}/terraform"
-                        STATE_PATH="/jenkins_home/terraform-state/terraform.tfstate"
                         PLAN_PATH="/jenkins_home${SCAN_PATH}/tfplan"
 
                         docker run --rm \
@@ -258,7 +251,6 @@ pipeline {
                             -e TF_VAR_ssh_public_key \
                             hashicorp/terraform:1.16.0 \
                             apply \
-                            -state="$STATE_PATH" \
                             "$PLAN_PATH"
                     '''
                 }

@@ -203,6 +203,7 @@ pipeline {
                             -e ARM_CLIENT_SECRET \
                             -e ARM_TENANT_ID \
                             -e ARM_SUBSCRIPTION_ID \
+                            -e TF_VAR_ssh_public_key \
                             hashicorp/terraform:1.16.0 \
                             plan \
                             -state="$STATE_PATH" \
@@ -254,6 +255,7 @@ pipeline {
                             -e ARM_CLIENT_SECRET \
                             -e ARM_TENANT_ID \
                             -e ARM_SUBSCRIPTION_ID \
+                            -e TF_VAR_ssh_public_key \
                             hashicorp/terraform:1.16.0 \
                             apply \
                             -state="$STATE_PATH" \

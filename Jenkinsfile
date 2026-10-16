@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -85,14 +86,14 @@ pipeline {
             steps {
                 script {
                     env.IMAGE_TAG = sh(
-                        script: "git rev-parse --short HEAD",
+                        script: 'git rev-parse --short HEAD',
                         returnStdout: true
                     ).trim()
                 }
 
                 sh '''
-                    docker build \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                    docker build --pull --no-cache \
+                        -t "${IMAGE_NAME}:${IMAGE_TAG}" \
                         "${WORKSPACE}/backend"
                 '''
             }
@@ -131,11 +132,11 @@ pipeline {
                             -u "$AZ_CLIENT_ID" \
                             --password-stdin
 
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} \
-                            ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker tag "${IMAGE_NAME}:${IMAGE_TAG}" \
+                            "${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}"
 
                         docker push \
-                            ${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}
+                            "${ACR_NAME}/${IMAGE_NAME}:${IMAGE_TAG}"
                     '''
                 }
             }

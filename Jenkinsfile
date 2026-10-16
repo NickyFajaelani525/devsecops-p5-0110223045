@@ -77,7 +77,7 @@ pipeline {
                         --format json \
                         --output "$TRIVY_PATH/trivy-fs-report.json" \
                         --severity MEDIUM,HIGH,CRITICAL \
-                        --exit-code 0
+                        --exit-code 1
                 '''
             }
         }

@@ -1,36 +1,81 @@
-# Python
+
+# Python bytecode and cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
+*.py[cod]
+*$py.class
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 .venv/
 venv/
+env/
+ENV/
 
-# Database lokal (SQLite) — jangan commit data, apalagi setelah migrasi ke Postgres
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Local databases and database backups
 *.db
+*.sqlite
 *.sqlite3
+*.db-journal
+*.sqlite3-journal
+*.bak
+*.backup
 
-# Environment / secrets
+# Environment variables and secrets
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
 
-# Jenkins artifact hasil scan (opsional — biasanya ini justru mau di-archive via Jenkins,
-# bukan disimpan permanen di git; uncomment kalau mau exclude dari repo)
-# gitleaks-*.json
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
 
-# OS / editor noise
+# Test and coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+junit.xml
+
+# SonarQube local artifacts
+.scannerwork/
+.sonar/
+
+# Jenkins and security scan reports
+# Hasil scan disimpan sebagai artifact Jenkins, bukan source code
+gitleaks-*.json
+sonar-report*.json
+
+# Git and OS/editor files
+.git/
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.swo
 
-# Terraform
-**/.terraform/*
+# Docker local overrides
+docker-compose.override.yml
+
+# Terraform artifacts, if added later
+**/.terraform/
 *.tfstate
 *.tfstate.*
 *.tfvars
 *.tfvars.json
+

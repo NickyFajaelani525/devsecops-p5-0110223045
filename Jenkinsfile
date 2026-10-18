@@ -47,6 +47,7 @@ pipeline {
                           -e SONAR_HOST_URL="$SONAR_HOST_URL" \
                           -e SONAR_TOKEN="$SONAR_AUTH_TOKEN" \
                           sonarsource/sonar-scanner-cli
+			  -Dsonar.scanner.metadataFilePath="$WORKSPACE/report-task.txt"
                     '''
                 }
             }
